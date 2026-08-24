@@ -1,0 +1,71 @@
+name: Build image
+
+# Builds this branch into a container image published to GHCR.
+#
+# The upstream Forgejo workflows are removed on this branch: they target
+# codeberg's release, mirror and PR automation and its runner labels, none of
+# which apply to a fork that only needs an image built.
+on:
+  push:
+    branches:
+      - v16.x.x-project-api
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: build-image
+      cancel-in-progress: true
+
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/forgejo
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Full history and tags: the Makefile derives FORGEJO_VERSION from
+          # `git describe --tags`, and a depth-1 checkout has no tag to describe,
+          # which leaves the running instance reporting an empty version.
+          fetch-depth: 0
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Derive version
+        id: version
+        run: |
+          set -eu
+          # The expression the Makefile uses, so the running instance reports a
+          # version that matches the source it was built from.
+          base=$(git describe --exclude '*-test' --tags --always | sed 's/^v//' | sed 's/\-g/-/')
+          echo "release=${base}+project-api" >> "$GITHUB_OUTPUT"
+
+      # Dockerfile.rootless, not Dockerfile: the forgejo Helm chart deploys the
+      # rootless image shape, and appends "-rootless" to image.tag when
+      # image.rootless is true (its default). Both spellings are pushed so the
+      # chart resolves either way.
+      - name: Build image
+        run: |
+          set -eux
+          docker build \
+            -f Dockerfile.rootless \
+            --build-arg RELEASE_VERSION="${{ steps.version.outputs.release }}" \
+            -t "$IMAGE:${{ github.sha }}" \
+            -t "$IMAGE:${{ github.sha }}-rootless" \
+            -t "$IMAGE:latest" \
+            -t "$IMAGE:latest-rootless" \
+            .
+
+      - name: Push image
+        run: |
+          set -eux
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:${{ github.sha }}-rootless"
+          docker push "$IMAGE:latest"
+          docker push "$IMAGE:latest-rootless"

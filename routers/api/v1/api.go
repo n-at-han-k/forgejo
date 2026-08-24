@@ -426,6 +426,10 @@ func mustEnableIssuesOrPulls() func(ctx *context.APIContext) {
 	return checkPermission(apiv1_permissions.MustEnableIssuesOrPulls)
 }
 
+func mustEnableProjects() func(ctx *context.APIContext) {
+	return checkPermission(apiv1_permissions.MustEnableProjects)
+}
+
 func mustAllowPulls() func(ctx *context.APIContext) {
 	return checkPermission(apiv1_permissions.MustAllowPulls)
 }
@@ -1071,6 +1075,29 @@ func Routes() *web.Route {
 					m.Post("", bind(api.UpdateRepoAvatarOption{}), repo.UpdateAvatar)
 					m.Delete("", repo.DeleteAvatar)
 				}, reqAdmin(), reqToken())
+				m.Group("/projects", func() {
+					m.Combo("").Get(repo.ListProjects).
+						Post(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.CreateProjectOption{}), repo.CreateProject)
+					m.Group("/{id}", func() {
+						m.Combo("").Get(repo.GetProject).
+							Patch(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.EditProjectOption{}), repo.EditProject).
+							Delete(reqToken(), reqRepoWriter(unit.TypeProjects), repo.DeleteProject)
+						m.Group("/columns", func() {
+							m.Combo("").Get(repo.ListProjectColumns).
+								Post(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.CreateProjectColumnOption{}), repo.CreateProjectColumn).
+								Patch(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.MoveProjectColumnsOption{}), repo.MoveProjectColumns)
+							m.Group("/{column_id}", func() {
+								m.Combo("").Get(repo.GetProjectColumn).
+									Patch(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.EditProjectColumnOption{}), repo.EditProjectColumn).
+									Delete(reqToken(), reqRepoWriter(unit.TypeProjects), repo.DeleteProjectColumn)
+								m.Combo("/issues").Get(repo.ListProjectColumnIssues).
+									Post(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.AddProjectIssueOption{}), repo.AddIssueToProjectColumn).
+									Patch(reqToken(), reqRepoWriter(unit.TypeProjects), bind(api.MoveProjectIssuesOption{}), repo.MoveProjectColumnIssues)
+							})
+						})
+						m.Delete("/issues/{index}", reqToken(), reqRepoWriter(unit.TypeProjects), repo.RemoveIssueFromProject)
+					})
+				}, mustEnableProjects())
 				m.Group("/sync_fork", func() {
 					m.Get("", reqRepoReader(unit.TypeCode), repo.SyncForkDefaultInfo)
 					m.Post("", mustNotBeArchived(), reqRepoWriter(unit.TypeCode), repo.SyncForkDefault)

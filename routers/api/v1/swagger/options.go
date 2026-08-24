@@ -83,6 +83,21 @@ type swaggerParameterBodies struct {
 	EditMilestoneOption api.EditMilestoneOption
 
 	// in:body
+	CreateProjectOption api.CreateProjectOption
+	// in:body
+	EditProjectOption api.EditProjectOption
+	// in:body
+	CreateProjectColumnOption api.CreateProjectColumnOption
+	// in:body
+	EditProjectColumnOption api.EditProjectColumnOption
+	// in:body
+	MoveProjectColumnsOption api.MoveProjectColumnsOption
+	// in:body
+	AddProjectIssueOption api.AddProjectIssueOption
+	// in:body
+	MoveProjectIssuesOption api.MoveProjectIssuesOption
+
+	// in:body
 	CreateOrgOption api.CreateOrgOption
 	// in:body
 	EditOrgOption api.EditOrgOption

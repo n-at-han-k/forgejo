@@ -54,7 +54,7 @@ func unitsToScopes(unitTypes []unit_model.Type, levelString string) string {
 		switch unit {
 		case "issues":
 			scope = "issue"
-		case "code", "pulls", "wiki", "project", "actions", "releases":
+		case "code", "pulls", "wiki", "projects", "actions", "releases":
 			scope = "repository"
 		case "packages":
 			scope = "package"

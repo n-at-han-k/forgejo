@@ -87,7 +87,13 @@ cpu.out
 /web_src/fomantic/build/themes/default/assets/fonts/*
 !/web_src/fomantic/build/themes/default/assets/fonts/icons.woff2
 !/web_src/fomantic/build/themes/default/assets/fonts/outline-icons.woff2
-/VERSION
+# /VERSION intentionally NOT excluded on this fork. The build workflow
+# (.github/workflows/build-image.yml) writes a semver here so that the
+# Makefile's STORED_VERSION path runs instead of `git describe --always`,
+# which on an untagged branch produces a bare short-sha that is not a
+# valid semver -- and that in turn breaks act_runner's token-auth
+# injection for private action-repo clones. See the "Derive version"
+# step in the workflow for the full reasoning.
 /.air
 /.go-licenses
 

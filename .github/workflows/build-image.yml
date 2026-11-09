@@ -41,10 +41,27 @@ jobs:
         id: version
         run: |
           set -eu
-          # The expression the Makefile uses, so the running instance reports a
-          # version that matches the source it was built from.
-          base=$(git describe --exclude '*-test' --tags --always | sed 's/^v//' | sed 's/\-g/-/')
-          echo "release=${base}+project-api" >> "$GITHUB_OUTPUT"
+          # Seed the Makefile's STORED_VERSION path with a semver 2.0.0 string.
+          #
+          # Upstream's default (git describe --tags --always) on this fork
+          # returns a bare short-sha (no tags), so main.Version ends up as
+          # "<sha>+gitea-1.22.0" -- not a parseable semver. /api/v1/version
+          # returns that string, and act_runner v12.8.2 refuses to inject the
+          # ACTIONS_RUNTIME_TOKEN when it cannot parse the server version
+          # ("failed to determine token auth support"), which makes every
+          # private-action clone fall back to an anonymous `git clone` that
+          # a REQUIRE_SIGNIN_VIEW=true instance rejects with 401. Writing a
+          # VERSION file here takes precedence over git-describe inside the
+          # Makefile, and flows into -ldflags -X main.Version=... so the
+          # endpoint reports it. (.dockerignore un-excludes /VERSION so the
+          # build context picks this up.)
+          #
+          # 16.0.3 is the upstream Forgejo release this branch sits on top
+          # of; bump it when rebasing onto a newer upstream.
+          commit=$(git rev-parse --short=10 HEAD)
+          version="16.0.3-project-api.${commit}"
+          echo "$version" > VERSION
+          echo "release=${version}" >> "$GITHUB_OUTPUT"
 
       # Dockerfile.rootless, not Dockerfile: the forgejo Helm chart deploys the
       # rootless image shape, and appends "-rootless" to image.tag when
